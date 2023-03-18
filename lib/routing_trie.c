@@ -43,6 +43,8 @@ void add_route(routing_trie trie, uint32_t prefix, uint32_t next_hop, uint32_t m
 }
 
 rtrie_node* get_route(routing_trie trie, uint32_t ip) {
+	ip = __builtin_bswap32(ip);
+
 	rtrie_node* res = NULL;
 
 	rtrie_node* current_node = trie->root;

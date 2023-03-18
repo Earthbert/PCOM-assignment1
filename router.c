@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
 	// Do not modify this line
 	// init(argc - 2, argv + 2);
 
-	routing_trie rtrie = populate_routing_trie("rtable0.txt");
+	routing_trie rtrie = populate_routing_trie("rtable2.txt");
 
 	{
 		char addr[100];
@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
 			scanf("%s", addr);
 			int ip;
 			inet_pton(AF_INET, addr, &ip);
-			rtrie_node* node = get_route(rtrie, __builtin_bswap32(ip));
+			rtrie_node* node = get_route(rtrie, ip);
 			if (node) {
 				printf("Next-Hop: 0x%08x, Interface: %d, Mask: 0x%08x, Prefix: 0x%08x\n", node->next_hop, node->interface, node->mask, node->prefix);
 			}
