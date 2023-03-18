@@ -19,13 +19,13 @@ routing_trie create_trie() {
 }
 
 void add_route(routing_trie trie, uint32_t prefix, uint32_t next_hop, uint32_t mask, int interface) {
-	prefix = __builtin_bswap32(prefix);
-	next_hop = __builtin_bswap32(next_hop);
-	mask = __builtin_bswap32(mask);
-
 	rtrie_node* current_node = trie->root;
 	uint32_t backup_mask = mask;
 	uint32_t backup_prefix = prefix;
+
+	prefix = __builtin_bswap32(prefix);
+	mask = __builtin_bswap32(mask);
+
 
 	while (mask) {
 		uint32_t bit = (prefix & last_bit_one) >> 31;
