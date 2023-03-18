@@ -32,15 +32,9 @@ int main(int argc, char* argv[]) {
 			scanf("%s", addr);
 			int ip;
 			inet_pton(AF_INET, addr, &ip);
-			rtrie_node* node = get_route(rtrie, ip);
+			rtrie_node* node = get_route(rtrie, __builtin_bswap32(ip));
 			if (node) {
-				char nexthop[30];
-				char mask[30];
-				char prefix[30];
-				inet_ntop(AF_INET, &node->next_hop, nexthop, 30);
-				inet_ntop(AF_INET, &node->mask, mask, 30);
-				inet_ntop(AF_INET, &node->prefix, prefix, 30);
-				printf("Next-Hop: %s, Interface: %d, Mask: %s, Prefix: %s\n", nexthop, node->interface, mask, prefix);
+				printf("Next-Hop: 0x%08x, Interface: %d, Mask: 0x%08x, Prefix: 0x%08x\n", node->next_hop, node->interface, node->mask, node->prefix);
 			}
 		}
 	}
