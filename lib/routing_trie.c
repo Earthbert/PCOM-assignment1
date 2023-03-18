@@ -41,7 +41,7 @@ rtrie_node* get_route(routing_trie trie, uint32_t ip) {
 
 	rtrie_node* current_node = trie->root;
 
-	while (ip) {
+	while (1) {
 		if (current_node->interface != NO_INT) {
 			res = current_node;
 		}
