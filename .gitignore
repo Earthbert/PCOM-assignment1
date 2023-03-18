@@ -1,2 +1,4 @@
 .vscode
 .gdb_history
+*.o
+router
