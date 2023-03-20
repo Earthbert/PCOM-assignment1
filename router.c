@@ -4,27 +4,14 @@
 #include "routing_trie.h"
 #include <arpa/inet.h>
 
-routing_trie populate_routing_trie(const char* path) {
-	struct route_table_entry* rtable = malloc(sizeof(struct route_table_entry) * 80000);
-	int nr_entries = read_rtable(path, rtable);
-
-	routing_trie rtrie = create_trie();
-
-	for (int i = 0; i < nr_entries; i++) {
-		add_route(rtrie, rtable[i].prefix, rtable[i].next_hop, rtable[i].mask, rtable[i].interface);
-	}
-
-	free(rtable);
-	return rtrie;
-}
-
 int main(int argc, char* argv[]) {
 	char buf[MAX_PACKET_LEN];
 
 	// Do not modify this line
 	// init(argc - 2, argv + 2);
 
-	routing_trie rtrie = populate_routing_trie("rtable2.txt");
+	routing_trie rtrie = create_trie();
+	read_rtable("rtable1.txt", rtrie);
 
 	{
 		char addr[100];
@@ -34,7 +21,13 @@ int main(int argc, char* argv[]) {
 			inet_pton(AF_INET, addr, &ip);
 			rtrie_node* node = get_route(rtrie, ip);
 			if (node) {
-				printf("Next-Hop: 0x%08x, Interface: %d, Mask: 0x%08x, Prefix: 0x%08x\n", node->next_hop, node->interface, node->mask, node->prefix);
+				char nexthop[30];
+				char mask[30];
+				char prefix[30];
+				inet_ntop(AF_INET, &node->next_hop, nexthop, 30);
+				inet_ntop(AF_INET, &node->mask, mask, 30);
+				inet_ntop(AF_INET, &node->prefix, prefix, 30);
+				printf("Next-Hop: %s, Interface: %d, Mask: %s, Prefix: %s\n", nexthop, node->interface, mask, prefix);
 			}
 		}
 	}

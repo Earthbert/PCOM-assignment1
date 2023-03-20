@@ -1,4 +1,5 @@
 #include "lib.h"
+#include "routing_trie.h"
 
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -196,33 +197,36 @@ uint16_t checksum(uint16_t *data, size_t len)
 	return (uint16_t)(~checksum);
 }
 
-int read_rtable(const char *path, struct route_table_entry *rtable)
+void read_rtable(const char *path, routing_trie trie)
 {
 	FILE *fp = fopen(path, "r");
 	int j = 0, i;
 	char *p, line[64];
+	struct route_table_entry entry;
 
 	while (fgets(line, sizeof(line), fp) != NULL) {
 		p = strtok(line, " .");
 		i = 0;
 		while (p != NULL) {
 			if (i < 4)
-				*(((unsigned char *)&rtable[j].prefix)  + i % 4) = (unsigned char)atoi(p);
+				*(((unsigned char *)&entry.prefix)  + i % 4) = (unsigned char)atoi(p);
 
 			if (i >= 4 && i < 8)
-				*(((unsigned char *)&rtable[j].next_hop)  + i % 4) = atoi(p);
+				*(((unsigned char *)&entry.next_hop)  + i % 4) = atoi(p);
 
 			if (i >= 8 && i < 12)
-				*(((unsigned char *)&rtable[j].mask)  + i % 4) = atoi(p);
+				*(((unsigned char *)&entry.mask)  + i % 4) = atoi(p);
 
 			if (i == 12)
-				rtable[j].interface = atoi(p);
+				entry.interface = atoi(p);
 			p = strtok(NULL, " .");
 			i++;
 		}
+		add_route(trie, entry.prefix, entry.next_hop, entry.mask, entry.interface);
+
 		j++;
 	}
-	return j;
+
 }
 
 int parse_arp_table(char *path, struct arp_entry *arp_table)

@@ -1,6 +1,8 @@
 #ifndef _SKEL_H_
 #define _SKEL_H_
 
+#include "routing_trie.h"
+
 #include <unistd.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -80,11 +82,10 @@ uint16_t checksum(uint16_t *data, size_t len);
  */
 int hwaddr_aton(const char *txt, uint8_t *addr);
 
-/* Populates a route table from file, rtable should be allocated
- * e.g. rtable = malloc(sizeof(struct route_table_entry) * 80000);
- * This function returns the size of the route table.
+/* Populates a route table from file and store data in a routing trie.
+ * Routing Trie should be created.
  */
-int read_rtable(const char *path, struct route_table_entry *rtable);
+void read_rtable(const char *path, routing_trie trie);
 
 /* Parses a static mac table from path and populates arp_table.
  * arp_table should be allocated and have enough space. This

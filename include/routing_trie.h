@@ -6,7 +6,7 @@
 
 typedef struct rtrie_node rtrie_node;
 
-struct rtrie_node {
+struct __attribute__((__packed__)) rtrie_node {
 	uint32_t interface;
 	uint32_t next_hop;
 	uint32_t mask;
