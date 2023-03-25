@@ -7,6 +7,7 @@
 
 void create_arp_table(struct arp_table *table) {
 	table->__capacity = 50;
+	table->len = 0;
 	table->entries = malloc(table->__capacity * sizeof(struct arp_entry));
 }
 
