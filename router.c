@@ -43,7 +43,40 @@ int main(int argc, char* argv[]) {
 				uint32_t interface_ip;
 				inet_pton(AF_INET, get_interface_ip(interface), &interface_ip);
 				if (interface_ip == ip_hdr->daddr) {
-					printf("Package for this device\n");
+					if (ip_hdr->protocol != IPPROTO_ICMP)
+						continue;
+					uint32_t headers_len = sizeof(struct ether_header) + sizeof(struct iphdr) + sizeof(struct icmphdr);
+					// Save ICMP payload
+					uint32_t send_len = len - headers_len;
+					char* send_buf = malloc(send_len);
+					memcpy(send_buf, buf + headers_len, send_len);
+
+					// Prepare ICMP header
+					struct icmphdr* icmp_h = (struct icmphdr*)((char*)ip_hdr + sizeof(struct iphdr));
+					icmp_h->type = 0x0;
+					icmp_h->code = 0;
+					icmp_h->checksum = 0;
+					icmp_h->checksum = __builtin_bswap16(checksum((uint16_t*)icmp_h, sizeof(struct icmphdr)));
+
+					// Prepare IP header
+					ip_hdr->daddr = ip_hdr->saddr;
+					inet_pton(AF_INET, get_interface_ip(interface), &ip_hdr->saddr);
+					ip_hdr->ttl = 64;
+					ip_hdr->protocol = IPPROTO_ICMP;
+					ip_hdr->tot_len = __builtin_bswap16((uint16_t)sizeof(struct iphdr) + sizeof(struct icmphdr) + send_len);
+					ip_hdr->check = 0;
+					ip_hdr->check = __builtin_bswap16(checksum((uint16_t*)ip_hdr, sizeof(struct iphdr)));
+
+					// Prepare L2 header
+					memcpy(eth_hdr->ether_dhost, eth_hdr->ether_shost, 6);
+					get_interface_mac(interface, eth_hdr->ether_shost);
+
+					// Copy ICMP payload
+					memcpy(buf + headers_len, send_buf, send_len);
+					// Send packet
+					printf("%d\n", headers_len + send_len);
+					send_to_link(interface, buf, headers_len + send_len);
+					free(send_buf);
 					continue;
 				}
 			}
@@ -61,8 +94,39 @@ int main(int argc, char* argv[]) {
 
 			// Verify TTL
 			{
-				if (ip_hdr->ttl < 1) {
-					printf("No more time to live\n");
+				if (ip_hdr->ttl <= 1) {
+					// Save ICMP payload
+					uint32_t send_len = sizeof(struct iphdr) + 8;
+					char* send_buf = malloc(send_len);
+					memcpy(send_buf, ip_hdr, send_len);
+
+					// Prepare ICMP header
+					struct icmphdr* icmp_h = (struct icmphdr*)((char*)ip_hdr + sizeof(struct iphdr));
+					memset(icmp_h, 0, sizeof(struct icmphdr));
+					icmp_h->type = 0xB;
+					icmp_h->code = 0;
+					icmp_h->checksum = 0;
+					icmp_h->checksum = __builtin_bswap16(checksum((uint16_t*)icmp_h, sizeof(struct icmphdr)));
+
+					// Prepare IP header
+					ip_hdr->daddr = ip_hdr->saddr;
+					inet_pton(AF_INET, get_interface_ip(interface), &ip_hdr->saddr);
+					ip_hdr->ttl = 64;
+					ip_hdr->protocol = IPPROTO_ICMP;
+					ip_hdr->tot_len = __builtin_bswap16((uint16_t)sizeof(struct iphdr) + sizeof(struct icmphdr) + send_len);
+					ip_hdr->check = 0;
+					ip_hdr->check = __builtin_bswap16(checksum((uint16_t*)ip_hdr, sizeof(struct iphdr)));
+
+					// Prepare L2 header
+					uint32_t headers_len = sizeof(struct ether_header) + sizeof(struct iphdr) + sizeof(struct icmphdr);
+					memcpy(eth_hdr->ether_dhost, eth_hdr->ether_shost, 6);
+					get_interface_mac(interface, eth_hdr->ether_shost);
+
+					// Copy ICMP payload
+					memcpy(buf + headers_len, send_buf, send_len);
+					// Send packet
+					send_to_link(interface, buf, headers_len + send_len);
+					free(send_buf);
 					continue;
 				}
 				ip_hdr->ttl--;
@@ -73,7 +137,38 @@ int main(int argc, char* argv[]) {
 			{
 				route = get_route(rtrie, ip_hdr->daddr);
 				if (!route) {
-					printf("Destination unreachable\n");
+					// Save ICMP payload
+					uint32_t send_len = sizeof(struct iphdr) + 8;
+					char* send_buf = malloc(send_len);
+					memcpy(send_buf, ip_hdr, send_len);
+
+					// Prepare ICMP header
+					struct icmphdr* icmp_h = (struct icmphdr*)((char*)ip_hdr + sizeof(struct iphdr));
+					memset(icmp_h, 0, sizeof(struct icmphdr));
+					icmp_h->type = 0x3;
+					icmp_h->code = 0;
+					icmp_h->checksum = 0;
+					icmp_h->checksum = __builtin_bswap16(checksum((uint16_t*)icmp_h, sizeof(struct icmphdr)));
+
+					// Prepare IP header
+					ip_hdr->daddr = ip_hdr->saddr;
+					inet_pton(AF_INET, get_interface_ip(interface), &ip_hdr->saddr);
+					ip_hdr->ttl = 64;
+					ip_hdr->protocol = IPPROTO_ICMP;
+					ip_hdr->tot_len = __builtin_bswap16((uint16_t)sizeof(struct iphdr) + sizeof(struct icmphdr) + send_len);
+					ip_hdr->check = 0;
+					ip_hdr->check = __builtin_bswap16(checksum((uint16_t*)ip_hdr, sizeof(struct iphdr)));
+
+					// Prepare L2 header
+					uint32_t headers_len = sizeof(struct ether_header) + sizeof(struct iphdr) + sizeof(struct icmphdr);
+					memcpy(eth_hdr->ether_dhost, eth_hdr->ether_shost, 6);
+					get_interface_mac(interface, eth_hdr->ether_shost);
+
+					// Copy ICMP payload
+					memcpy(buf + headers_len, send_buf, send_len);
+					// Send packet
+					send_to_link(interface, buf, headers_len + send_len);
+					free(send_buf);
 					continue;
 				}
 			}
@@ -163,8 +258,8 @@ int main(int argc, char* argv[]) {
 					packet_t* pack = queue_deq(to_be_handled_q);
 					struct ether_header* eth_h = (struct ether_header*)pack->buf;
 					struct iphdr* ip_h = (struct iphdr*)(pack->buf + sizeof(struct ether_header));
-					struct rtrie_node *route = get_route(rtrie, ip_h->daddr);
-					struct arp_entry *arp_entry = get_mac_addr(&arp_table, route->next_hop);
+					struct rtrie_node* route = get_route(rtrie, ip_h->daddr);
+					struct arp_entry* arp_entry = get_mac_addr(&arp_table, route->next_hop);
 					if (!arp_entry) { // If we still don't know MAC addr for packet add it back into queue
 						queue_enq(handled_q, pack);
 						continue;
