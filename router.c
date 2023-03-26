@@ -239,6 +239,7 @@ int main(int argc, char* argv[]) {
 				memcpy(arp_hdr->tha, arp_hdr->sha, 6);
 				arp_hdr->tpa = arp_hdr->spa;
 				arp_hdr->spa = interface_ip;
+				get_interface_mac(interface, arp_hdr->sha);
 				// Prepare L2 header
 				get_interface_mac(interface, eth_hdr->ether_shost);
 				memcpy(eth_hdr->ether_dhost, arp_hdr->tha, 6);
