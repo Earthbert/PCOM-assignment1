@@ -24,6 +24,8 @@ int main(int argc, char* argv[]) {
 	queue to_be_handled_q = queue_create();
 	queue handled_q = queue_create();
 
+	const uint8_t broadcast_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF,0xFF};
+
 	while (1) {
 
 		int interface = 0;
@@ -33,6 +35,14 @@ int main(int argc, char* argv[]) {
 		DIE(interface < 0, "recv_from_any_links");
 
 		struct ether_header* eth_hdr = (struct ether_header*)buf;
+		// Check if router is L2 dest or frame is broadcasted
+		{
+			uint8_t mac_addr[6];
+			get_interface_mac(interface, mac_addr);
+			if (memcmp(eth_hdr->ether_dhost, mac_addr, 6) && memcmp(eth_hdr->ether_dhost, broadcast_mac, 6))
+				continue;
+		}
+
 		if (__builtin_bswap16(eth_hdr->ether_type) == 0x0800) {
 			printf("Received IPV4 request\n");
 			// Handle IPv4 package
@@ -43,6 +53,7 @@ int main(int argc, char* argv[]) {
 				uint32_t interface_ip;
 				inet_pton(AF_INET, get_interface_ip(interface), &interface_ip);
 				if (interface_ip == ip_hdr->daddr) {
+					// If it is send ICMP response
 					if (ip_hdr->protocol != IPPROTO_ICMP)
 						continue;
 					uint32_t headers_len = sizeof(struct ether_header) + sizeof(struct iphdr) + sizeof(struct icmphdr);
@@ -132,7 +143,7 @@ int main(int argc, char* argv[]) {
 				ip_hdr->ttl--;
 			}
 
-			// Search for routing table
+			// Search for route
 			rtrie_node* route;
 			{
 				route = get_route(rtrie, ip_hdr->daddr);
@@ -219,19 +230,17 @@ int main(int argc, char* argv[]) {
 				memcpy(eth_hdr->ether_dhost, arp_entry->mac, 6);
 			}
 
-			// Send package
+			// Send packet
 			send_to_link(route->interface, buf, len);
 		}
 		else if (__builtin_bswap16(eth_hdr->ether_type) == 0x0806) {
-			printf("Received ARP request\n");
-			// Handle ARP package
+			// Handle ARP packet
 			struct arp_header* arp_hdr = (struct arp_header*)(buf + sizeof(struct ether_header));
 			if (__builtin_bswap16(arp_hdr->op) == 0x1) {
 				// Respond to ARP request
 				uint32_t interface_ip;
 				inet_pton(AF_INET, get_interface_ip(interface), &interface_ip);
 				if (arp_hdr->tpa != interface_ip) {
-					printf("ARP Request not for me\n");
 					continue;
 				}
 				// Prepare ARP header for response
@@ -255,7 +264,6 @@ int main(int argc, char* argv[]) {
 				add_arp_entry(&arp_table, &recv_arp);
 				// Handle all packets in the queue
 				while (!queue_empty(to_be_handled_q)) {
-					fprintf(stderr, "HERE1\n");
 					packet_t* pack = queue_deq(to_be_handled_q);
 					struct ether_header* eth_h = (struct ether_header*)pack->buf;
 					struct iphdr* ip_h = (struct iphdr*)(pack->buf + sizeof(struct ether_header));
@@ -265,9 +273,8 @@ int main(int argc, char* argv[]) {
 						queue_enq(handled_q, pack);
 						continue;
 					}
-					fprintf(stderr, "HERE2\n");
+					// Send packet with known dest
 					memcpy(eth_h->ether_dhost, arp_entry->mac, 6);
-					fprintf(stderr, "HERE3\n");
 					send_to_link(route->interface, pack->buf, pack->len);
 					free(pack->buf);
 					free(pack);
