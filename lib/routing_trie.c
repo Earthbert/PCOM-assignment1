@@ -6,8 +6,8 @@
 
 const uint32_t last_bit_one = 0x80000000;
 
-static rtrie_node* create_node() {
-	rtrie_node* node = calloc(1, sizeof(rtrie_node));
+static rtrie_node *create_node() {
+	rtrie_node *node = calloc(1, sizeof(rtrie_node));
 	node->interface = NO_INT;
 	return node;
 }
@@ -19,7 +19,7 @@ routing_trie create_trie() {
 }
 
 void add_route(routing_trie trie, uint32_t prefix, uint32_t next_hop, uint32_t mask, int interface) {
-	rtrie_node* current_node = trie->root;
+	rtrie_node *current_node = trie->root;
 	uint32_t backup_mask = mask;
 	uint32_t backup_prefix = prefix;
 
@@ -42,12 +42,12 @@ void add_route(routing_trie trie, uint32_t prefix, uint32_t next_hop, uint32_t m
 	current_node->mask = backup_mask;
 }
 
-rtrie_node* get_route(routing_trie trie, uint32_t ip) {
+rtrie_node *get_route(routing_trie trie, uint32_t ip) {
 	ip = __builtin_bswap32(ip);
 
-	rtrie_node* res = NULL;
+	rtrie_node *res = NULL;
 
-	rtrie_node* current_node = trie->root;
+	rtrie_node *current_node = trie->root;
 
 	while (1) {
 		if (current_node->interface != NO_INT) {

@@ -21,8 +21,7 @@
 
 int interfaces[ROUTER_NUM_INTERFACES];
 
-int get_sock(const char *if_name)
-{
+int get_sock(const char *if_name) {
 	int res;
 	int s = socket(AF_PACKET, SOCK_RAW, 768);
 	DIE(s == -1, "socket");
@@ -37,16 +36,15 @@ int get_sock(const char *if_name)
 	addr.sll_family = AF_PACKET;
 	addr.sll_ifindex = intf.ifr_ifindex;
 
-	res = bind(s, (struct sockaddr *)&addr , sizeof(addr));
+	res = bind(s, (struct sockaddr *)&addr, sizeof(addr));
 	DIE(res == -1, "bind");
 	return s;
 }
 
-int send_to_link(int intidx, char *frame_data, size_t len)
-{
+int send_to_link(int intidx, char *frame_data, size_t len) {
 	/*
-	 * Note that "buffer" should be at least the MTU size of the 
-	 * interface, eg 1500 bytes 
+	 * Note that "buffer" should be at least the MTU size of the
+	 * interface, eg 1500 bytes
 	 */
 	int ret;
 	ret = write(interfaces[intidx], frame_data, len);
@@ -54,15 +52,13 @@ int send_to_link(int intidx, char *frame_data, size_t len)
 	return ret;
 }
 
-ssize_t receive_from_link(int intidx, char *frame_data)
-{
+ssize_t receive_from_link(int intidx, char *frame_data) {
 	ssize_t ret;
 	ret = read(interfaces[intidx], frame_data, MAX_PACKET_LEN);
 	return ret;
 }
 
-int socket_receive_message(int sockfd, char *frame_data, size_t *len)
-{
+int socket_receive_message(int sockfd, char *frame_data, size_t *len) {
 	/*
 	 * Note that "buffer" should be at least the MTU size of the
 	 * interface, eg 1500 bytes
@@ -99,8 +95,7 @@ int recv_from_any_link(char *frame_data, size_t *length) {
 	return -1;
 }
 
-char *get_interface_ip(int interface)
-{
+char *get_interface_ip(int interface) {
 	struct ifreq ifr;
 	int ret;
 	if (interface == 0)
@@ -113,8 +108,7 @@ char *get_interface_ip(int interface)
 	return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 }
 
-void get_interface_mac(int interface, uint8_t *mac)
-{
+void get_interface_mac(int interface, uint8_t *mac) {
 	struct ifreq ifr;
 	int ret;
 	if (interface == 0)
@@ -127,8 +121,7 @@ void get_interface_mac(int interface, uint8_t *mac)
 	memcpy(mac, ifr.ifr_addr.sa_data, 6);
 }
 
-static int hex2num(char c)
-{
+static int hex2num(char c) {
 	if (c >= '0' && c <= '9')
 		return c - '0';
 	if (c >= 'a' && c <= 'f')
@@ -139,8 +132,7 @@ static int hex2num(char c)
 	return -1;
 }
 
-int hex2byte(const char *hex)
-{
+int hex2byte(const char *hex) {
 	int a, b;
 	a = hex2num(*hex++);
 	if (a < 0)
@@ -152,8 +144,7 @@ int hex2byte(const char *hex)
 	return (a << 4) | b;
 }
 
-int hwaddr_aton(const char *txt, uint8_t *addr)
-{
+int hwaddr_aton(const char *txt, uint8_t *addr) {
 	int i;
 	for (i = 0; i < 6; i++) {
 		int a, b;
@@ -170,8 +161,7 @@ int hwaddr_aton(const char *txt, uint8_t *addr)
 	return 0;
 }
 
-void init(int argc, char *argv[])
-{
+void init(int argc, char *argv[]) {
 	for (int i = 0; i < argc; ++i) {
 		printf("Setting up interface: %s\n", argv[i]);
 		interfaces[i] = get_sock(argv[i]);
@@ -179,8 +169,7 @@ void init(int argc, char *argv[])
 }
 
 
-uint16_t checksum(uint16_t *data, size_t len)
-{
+uint16_t checksum(uint16_t *data, size_t len) {
 	unsigned long checksum = 0;
 	uint16_t extra_byte;
 	while (len > 1) {
@@ -193,12 +182,11 @@ uint16_t checksum(uint16_t *data, size_t len)
 	}
 
 	checksum = (checksum >> 16) + (checksum & 0xffff);
-	checksum += (checksum >>16);
+	checksum += (checksum >> 16);
 	return (uint16_t)(~checksum);
 }
 
-void read_rtable(const char *path, routing_trie trie)
-{
+void read_rtable(const char *path, routing_trie trie) {
 	FILE *fp = fopen(path, "r");
 	int j = 0, i;
 	char *p, line[64];
@@ -209,13 +197,13 @@ void read_rtable(const char *path, routing_trie trie)
 		i = 0;
 		while (p != NULL) {
 			if (i < 4)
-				*(((unsigned char *)&entry.prefix)  + i % 4) = (unsigned char)atoi(p);
+				*(((unsigned char *)&entry.prefix) + i % 4) = (unsigned char)atoi(p);
 
 			if (i >= 4 && i < 8)
-				*(((unsigned char *)&entry.next_hop)  + i % 4) = atoi(p);
+				*(((unsigned char *)&entry.next_hop) + i % 4) = atoi(p);
 
 			if (i >= 8 && i < 12)
-				*(((unsigned char *)&entry.mask)  + i % 4) = atoi(p);
+				*(((unsigned char *)&entry.mask) + i % 4) = atoi(p);
 
 			if (i == 12)
 				entry.interface = atoi(p);
@@ -229,15 +217,14 @@ void read_rtable(const char *path, routing_trie trie)
 
 }
 
-int parse_arp_table(char *path, struct arp_entry *arp_table)
-{
+int parse_arp_table(char *path, struct arp_entry *arp_table) {
 	FILE *f;
 	fprintf(stderr, "Parsing ARP table\n");
 	f = fopen(path, "r");
 	DIE(f == NULL, "Failed to open %s", path);
 	char line[100];
 	int i = 0;
-	for(i = 0; fgets(line, sizeof(line), f); i++) {
+	for (i = 0; fgets(line, sizeof(line), f); i++) {
 		char ip_str[50], mac_str[50];
 		sscanf(line, "%s %s", ip_str, mac_str);
 		fprintf(stderr, "IP: %s MAC: %s\n", ip_str, mac_str);

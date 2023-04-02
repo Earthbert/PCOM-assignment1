@@ -21,20 +21,19 @@ int queue_empty(queue q) {
 	return q->head == NULL;
 }
 
-void queue_enq(queue q, void* element) {
+void queue_enq(queue q, void *element) {
 	if (queue_empty(q)) {
 		q->head = q->tail = cons(element, NULL);
-	}
-	else {
+	} else {
 		q->tail->next = cons(element, NULL);
 		q->tail = q->tail->next;
 	}
 }
 
-void* queue_deq(queue q) {
+void *queue_deq(queue q) {
 	assert(!queue_empty(q));
 	{
-		void* temp = q->head->element;
+		void *temp = q->head->element;
 		q->head = cdr_and_free(q->head);
 		return temp;
 	}

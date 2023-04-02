@@ -11,7 +11,7 @@ void create_arp_table(struct arp_table *table) {
 	table->entries = malloc(table->__capacity * sizeof(struct arp_entry));
 }
 
-struct arp_entry* get_mac_addr(struct arp_table *table, uint32_t ip) {
+struct arp_entry *get_mac_addr(struct arp_table *table, uint32_t ip) {
 	for (uint32_t i = 0; i < table->len; i++) {
 		if (table->entries[i].ip == ip)
 			return &(table->entries[i]);
